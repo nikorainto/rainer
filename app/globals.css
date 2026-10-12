@@ -53,6 +53,19 @@ body {
   cursor: pointer;
 }
 
+.radar-map .leaflet-marker-icon.wind-arrow {
+  background: transparent;
+  border: none;
+  pointer-events: none;
+}
+
+.radar-map .wind-arrow-rotor {
+  width: 88px;
+  height: 88px;
+  transform-origin: 44px 44px;
+  filter: drop-shadow(0 0 2px #061018);
+}
+
 .radar-map .leaflet-top {
   top: 6.25rem;
   z-index: 400;

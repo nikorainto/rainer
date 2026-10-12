@@ -1,8 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
-  catchUpMin,
-  catchUpShift,
+  scanAgeMin,
   frameStepMin,
   mapFramesFromCatalog,
   nearestStopIndex,
@@ -101,7 +100,7 @@ test("now sits between a late scan and the next forecast image", () => {
   assert.equal(stops[2]?.kind, "nowcast");
 });
 
-test("the current minute slides the latest scan forward by its age", () => {
+test("the current minute reuses the latest scan and reports its age", () => {
   const frames = past([-20, -10]);
   const stops = timelineStops(frames);
   const now = stops.find((stop) => stop.offsetMin === 0);
@@ -109,28 +108,19 @@ test("the current minute slides the latest scan forward by its age", () => {
   const future = stops.find((stop) => stop.offsetMin === 20);
   assert.ok(now && previous && future);
   assert.equal(now.path, "/v2/radar/-10");
-  assert.equal(catchUpMin(previous, frames), 0);
-  assert.equal(catchUpMin(now, frames), 10);
-  assert.equal(catchUpMin(future, frames), 10);
-  assert.deepEqual(catchUpShift({ eastPxPerMin: 1.5, southPxPerMin: -0.5 }, 10), {
-    east: 15,
-    south: -5,
-  });
+  assert.equal(scanAgeMin(previous, frames), 0);
+  assert.equal(scanAgeMin(now, frames), 10);
+  assert.equal(scanAgeMin(future, frames), 10);
 });
 
-test("a scan that already lands on now does not slide", () => {
+test("a scan that already lands on now has no age", () => {
   const frames = past([-10, 0]);
   const now = timelineStops(frames).find((stop) => stop.offsetMin === 0);
   assert.ok(now);
-  assert.equal(catchUpMin(now, frames), 0);
-  assert.deepEqual(catchUpShift(null, 8), { east: 0, south: 0 });
-  assert.deepEqual(catchUpShift({ eastPxPerMin: 0.02, southPxPerMin: 0 }, 8), {
-    east: 0,
-    south: 0,
-  });
+  assert.equal(scanAgeMin(now, frames), 0);
 });
 
-test("a published forecast image is not slid", () => {
+test("a published forecast frame does not inherit the scan age", () => {
   const frames: MapFrame[] = [
     ...past([-7]),
     { time: 1_700_000_000 + 3 * 60, offsetMin: 3, path: "/v2/radar/future", kind: "nowcast" },
@@ -139,8 +129,8 @@ test("a published forecast image is not slid", () => {
   const now = stops.find((stop) => stop.offsetMin === 0);
   const ahead = stops.find((stop) => stop.offsetMin === 3);
   assert.ok(now && ahead);
-  assert.equal(catchUpMin(now, frames), 7);
-  assert.equal(catchUpMin(ahead, frames), 0);
+  assert.equal(scanAgeMin(now, frames), 7);
+  assert.equal(scanAgeMin(ahead, frames), 0);
 });
 
 test("a scan that lands on a future step is kept once", () => {

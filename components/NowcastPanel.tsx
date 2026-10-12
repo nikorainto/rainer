@@ -1,13 +1,14 @@
 "use client";
 
-import { Ellipsis } from "lucide-react";
+import { ArrowUp, Ellipsis } from "lucide-react";
 import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { RainChart } from "@/components/RainChart";
-import { formatClock, formatMm } from "@/lib/format";
+import { formatClock, formatKmh, formatMm } from "@/lib/format";
 import type { TimelineStop } from "@/lib/map-frame";
 import { rainSpans } from "@/lib/rain-spans";
 import { loadShowCoordinates, saveShowCoordinates, type Pin } from "@/lib/storage";
 import type { NowcastOk, NowcastSample, RainBand } from "@/lib/types";
+import type { WindReading } from "@/lib/wind";
 
 const BAND_TEXT = {
   none: "text-dry",
@@ -32,6 +33,7 @@ export function forecastFootnote(data: NowcastOk | null): string | null {
 export function NowcastPanel({
   place,
   data,
+  wind,
   loading,
   error,
   selected,
@@ -41,6 +43,7 @@ export function NowcastPanel({
 }: {
   place: Pin | null;
   data: NowcastOk | null;
+  wind: WindReading | null;
   loading: boolean;
   error: string | null;
   selected: NowcastSample | null;
@@ -87,6 +90,8 @@ export function NowcastPanel({
         ) : null}
       </PanelMenu>
 
+      {wind ? <WindLine wind={wind} /> : null}
+
       {place && !data && loading ? <PanelSkeleton /> : null}
 
       {place && !data && error ? (
@@ -127,6 +132,26 @@ export function NowcastPanel({
         </>
       ) : null}
     </aside>
+  );
+}
+
+function WindLine({ wind }: { wind: WindReading }) {
+  if (wind.calm) {
+    return <p className="text-[11px] leading-4 text-muted">Calm</p>;
+  }
+  return (
+    <p className="flex items-center gap-1.5 text-[11px] leading-4 text-muted">
+      <ArrowUp
+        size={14}
+        aria-hidden
+        className="shrink-0 text-ink"
+        style={{ transform: `rotate(${wind.bearingDeg}deg)` }}
+      />
+      <span>
+        From {wind.from} · blowing {wind.toward} ·{" "}
+        <span className="font-mono">{formatKmh(wind.speedKmh)} km/h</span>
+      </span>
+    </p>
   );
 }
 
@@ -207,7 +232,8 @@ function PanelMenu({
             </span>
           </button>
           <p className="mt-3 text-[11px] leading-4 text-muted">
-            Future frames are an estimate, not an official forecast.
+            Future frames are an estimate, not an official forecast. The arrow points where the wind
+            is blowing, about 1.5 km up.
           </p>
           <p className="mt-2 text-[11px] leading-4 text-muted">
             Radar{" "}
@@ -228,6 +254,16 @@ function PanelMenu({
               rel="noreferrer"
             >
               Esri
+            </a>
+            {" · "}
+            Wind{" "}
+            <a
+              className="underline decoration-line"
+              href="https://open-meteo.com/"
+              target="_blank"
+              rel="noreferrer"
+            >
+              Open-Meteo
             </a>
             {" · "}
             Places{" "}

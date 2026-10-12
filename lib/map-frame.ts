@@ -8,12 +8,6 @@ export type TimelineStop = {
   path: string;
 };
 
-export type MapShift = {
-  /** Native radar-zoom pixels. Positive east and south. */
-  east: number;
-  south: number;
-};
-
 /** Typical spacing of the observed scans, in minutes. RainViewer is usually 10. */
 export function frameStepMin(frames: MapFrame[]): number {
   const past = frames.filter((frame) => frame.kind === "past").sort((a, b) => a.time - b.time);
@@ -73,11 +67,10 @@ export function timelineStops(frames: MapFrame[]): TimelineStop[] {
 }
 
 /**
- * Minutes to slide a held scan forward so it catches up with the current minute.
- * A real scan stays put. The current minute, and later steps that reuse that
- * scan, slide by the scan's age and no further.
+ * How many minutes old the scan on this stop is.
+ * A frame shown at its own time is zero. A reused scan reports its age.
  */
-export function catchUpMin(stop: TimelineStop, frames: MapFrame[]): number {
+export function scanAgeMin(stop: TimelineStop, frames: MapFrame[]): number {
   if (stop.kind === "nowcast") return 0;
   let imageOffset: number | null = null;
   for (const frame of frames) {
@@ -88,18 +81,6 @@ export function catchUpMin(stop: TimelineStop, frames: MapFrame[]): number {
   const age = Math.max(0, -imageOffset);
   if (stop.kind === "forecast") return age;
   return Math.max(0, Math.min(age, stop.offsetMin - imageOffset));
-}
-
-/** Native-zoom pixel shift for `minutes` of the pin's motion. Too small to see becomes zero. */
-export function catchUpShift(
-  motion: { eastPxPerMin: number; southPxPerMin: number } | null,
-  minutes: number,
-): MapShift {
-  if (!motion || minutes <= 0) return { east: 0, south: 0 };
-  const east = motion.eastPxPerMin * minutes;
-  const south = motion.southPxPerMin * minutes;
-  if (Math.hypot(east, south) < 0.5) return { east: 0, south: 0 };
-  return { east, south };
 }
 
 /** Turn a RainViewer catalog into slider frames. Offsets are minutes from `nowSec`. */

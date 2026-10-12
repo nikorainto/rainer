@@ -8,7 +8,8 @@ import { forecastFootnote, NowcastPanel } from "@/components/NowcastPanel";
 import { TimelineBar } from "@/components/TimelineBar";
 import { useNowcastMonitor } from "@/hooks/useNowcastMonitor";
 import { useRadarCatalog } from "@/hooks/useRadarCatalog";
-import { catchUpMin, catchUpShift, nearestStopIndex, timelineStops } from "@/lib/map-frame";
+import { useWind } from "@/hooks/useWind";
+import { nearestStopIndex, scanAgeMin, timelineStops } from "@/lib/map-frame";
 import { installAudioUnlock, setAlertsMuted } from "@/lib/sound";
 import {
   loadLastPin,
@@ -38,6 +39,7 @@ export function Dashboard() {
   const offsetRef = useRef(offset);
 
   const monitor = useNowcastMonitor(place?.lat ?? null, place?.lon ?? null);
+  const wind = useWind(place?.lat ?? null, place?.lon ?? null);
   const catalog = useRadarCatalog();
 
   const locate = useCallback((fromUser: boolean) => {
@@ -154,8 +156,7 @@ export function Dashboard() {
   const selected = closestSample(monitor.data?.samples ?? [], stop?.offsetMin ?? 0);
   const host = monitor.data?.host ?? catalog.host;
   const frozen = stop?.kind === "forecast";
-  const catchUp = stop ? catchUpMin(stop, frames) : 0;
-  const shift = catchUpShift(monitor.data?.motion ?? null, catchUp);
+  const scanAge = stop ? scanAgeMin(stop, frames) : 0;
   const tileUrl = host && stop ? radarTileUrl(host, stop.path) : null;
 
   return (
@@ -166,10 +167,9 @@ export function Dashboard() {
         hasPlace={place != null}
         tileUrl={tileUrl}
         frozen={frozen}
-        shiftEast={shift.east}
-        shiftSouth={shift.south}
         band={selected?.band ?? monitor.data?.summary.bandNow ?? "none"}
         alert={monitor.alert?.type === "immediate"}
+        wind={wind}
         follow={follow}
         onPick={pickOnMap}
       />
@@ -202,6 +202,7 @@ export function Dashboard() {
           place={place}
           data={monitor.data}
           loading={monitor.loading}
+          wind={wind}
           error={monitor.error}
           selected={selected}
           markerOffset={stop?.offsetMin ?? 0}
@@ -233,11 +234,8 @@ export function Dashboard() {
           disabled={stops.length < 2}
           sample={selected}
         />
-        {catchUp >= 1 ? (
-          <p className="text-[11px] leading-4 text-muted">
-            Latest scan is {catchUp} min old
-            {shift.east !== 0 || shift.south !== 0 ? ", shifted to now" : ""}.
-          </p>
+        {scanAge >= 1 ? (
+          <p className="text-[11px] leading-4 text-muted">Latest scan is {scanAge} min old.</p>
         ) : null}
         {footnote ? <p className="text-[11px] leading-4 text-muted">{footnote}</p> : null}
       </div>

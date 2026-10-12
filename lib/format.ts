@@ -28,6 +28,12 @@ export function formatMm(rate: number): string {
   return rate.toFixed(1);
 }
 
+export function formatKmh(speed: number): string {
+  if (!Number.isFinite(speed) || speed < 0) return "0";
+  if (speed >= 10) return speed.toFixed(0);
+  return speed.toFixed(1);
+}
+
 export function compass(bearingDeg: number): string {
   const normalized = ((bearingDeg % 360) + 360) % 360;
   return COMPASS[Math.round(normalized / 22.5) % 16];

@@ -65,6 +65,8 @@ test("an approaching cell is a yes within 30 minutes and not a 5-minute alarm", 
   });
   assert.equal(result.summary.rainingNow, false);
   assert.equal(result.summary.willRainIn30, true);
+  assert.equal(result.motion?.direction, "E");
+  assert.ok((result.motion?.bearingDeg ?? -1) >= 80 && (result.motion?.bearingDeg ?? 999) <= 100);
   assert.match(result.summary.headline, /^Rain may start in \d+ mins$/);
   assert.equal(result.signals.immediate, false);
   assert.ok(result.summary.intensityMmHr > 8);

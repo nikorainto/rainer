@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import L from "leaflet";
-import { CircleMarker, MapContainer, useMap, useMapEvents } from "react-leaflet";
-import { SAMPLE_ZOOM } from "@/lib/constants";
+import { CircleMarker, MapContainer, Marker, useMap, useMapEvents } from "react-leaflet";
+import { formatKmh } from "@/lib/format";
 import type { RainBand } from "@/lib/types";
+import type { WindReading } from "@/lib/wind";
 import "leaflet/dist/leaflet.css";
 
 const BASE_TILES =
@@ -53,11 +54,10 @@ type RadarMapProps = {
   tileUrl: string | null;
   /** Latest scan held in place, slightly soft, for times with no forecast image. */
   frozen: boolean;
-  /** Native-zoom pixels to slide a held scan. Positive east and south. */
-  shiftEast: number;
-  shiftSouth: number;
   band: RainBand;
   alert: boolean;
+  /** Where the wind is blowing. Bearing 0 is north. */
+  wind: WindReading | null;
   follow: boolean;
   onPick: (lat: number, lon: number) => void;
 };
@@ -68,10 +68,9 @@ export default function RadarMap({
   hasPlace,
   tileUrl,
   frozen,
-  shiftEast,
-  shiftSouth,
   band,
   alert,
+  wind,
   follow,
   onPick,
 }: RadarMapProps) {
@@ -86,7 +85,7 @@ export default function RadarMap({
       attributionControl={false}
     >
       <Basemap />
-      <RadarTiles url={tileUrl} frozen={frozen} shiftEast={shiftEast} shiftSouth={shiftSouth} />
+      <RadarTiles url={tileUrl} frozen={frozen} />
       <FlyTo lat={lat} lon={lon} hasPlace={hasPlace} follow={follow} />
       {hasPlace ? null : <FrameFinland />}
       <MapPick onPick={onPick} />
@@ -115,9 +114,42 @@ export default function RadarMap({
               fillOpacity: 1,
             }}
           />
+          {wind && !wind.calm ? <WindArrow lat={lat} lon={lon} wind={wind} /> : null}
         </>
       ) : null}
     </MapContainer>
+  );
+}
+
+/** Arrowhead points where the wind is blowing. Bearing 0 is north. */
+function windArrowMarkup(bearingDeg: number): string {
+  const turn = ((bearingDeg % 360) + 360) % 360;
+  return `<div class="wind-arrow-rotor" style="transform:rotate(${turn}deg)"><svg xmlns="http://www.w3.org/2000/svg" width="88" height="88" viewBox="0 0 88 88" aria-hidden="true"><path d="M44 8 L54 22 H49 V34 H39 V22 H34 Z" fill="#e7f0f7" stroke="#061018" stroke-width="2" stroke-linejoin="round"/></svg></div>`;
+}
+
+function WindArrow({ lat, lon, wind }: { lat: number; lon: number; wind: WindReading }) {
+  const label = `Wind from ${wind.from}, blowing ${wind.toward} at ${formatKmh(wind.speedKmh)} km/h`;
+  const icon = useMemo(
+    () =>
+      L.divIcon({
+        className: "wind-arrow",
+        iconSize: [88, 88],
+        iconAnchor: [44, 44],
+        html: windArrowMarkup(wind.bearingDeg),
+      }),
+    [wind.bearingDeg],
+  );
+
+  return (
+    <Marker
+      key={`${lat.toFixed(4)},${lon.toFixed(4)}`}
+      position={[lat, lon]}
+      icon={icon}
+      interactive={false}
+      keyboard={false}
+      zIndexOffset={700}
+      title={label}
+    />
   );
 }
 
@@ -142,19 +174,11 @@ function Basemap() {
   return null;
 }
 
-function RadarTiles({
-  url,
-  frozen,
-  shiftEast,
-  shiftSouth,
-}: {
-  url: string | null;
-  frozen: boolean;
-  shiftEast: number;
-  shiftSouth: number;
-}) {
+function RadarTiles({ url, frozen }: { url: string | null; frozen: boolean }) {
   const map = useMap();
   const layerRef = useRef<L.TileLayer | null>(null);
+  const frozenRef = useRef(frozen);
+  frozenRef.current = frozen;
 
   useEffect(() => {
     if (!url) {
@@ -168,32 +192,19 @@ function RadarTiles({
         maxNativeZoom: 7,
         maxZoom: 14,
         zIndex: 250,
-      });
-      layerRef.current.addTo(map);
+      }).addTo(map);
     } else {
       layerRef.current.setUrl(url);
     }
+    const container = layerRef.current.getContainer();
+    if (container) container.style.filter = frozenRef.current ? "blur(2px)" : "";
   }, [map, url]);
 
   useEffect(() => {
-    if (!url) return;
-    const apply = () => {
-      const container = layerRef.current?.getContainer();
-      if (!container) return;
-      container.style.filter = frozen ? "blur(2px)" : "";
-      if (shiftEast === 0 && shiftSouth === 0) {
-        container.style.translate = "";
-        return;
-      }
-      const scale = 2 ** (map.getZoom() - SAMPLE_ZOOM);
-      container.style.translate = `${shiftEast * scale}px ${shiftSouth * scale}px`;
-    };
-    apply();
-    map.on("zoomend", apply);
-    return () => {
-      map.off("zoomend", apply);
-    };
-  }, [frozen, map, shiftEast, shiftSouth, url]);
+    const container = layerRef.current?.getContainer();
+    if (!container) return;
+    container.style.filter = frozen ? "blur(2px)" : "";
+  }, [frozen]);
 
   useEffect(() => {
     return () => {

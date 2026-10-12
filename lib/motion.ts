@@ -41,9 +41,27 @@ export function sampleGrid(
   return (v00 * (1 - tx) + v10 * tx) * (1 - ty) + (v01 * (1 - tx) + v11 * tx) * ty;
 }
 
+/** Nearby rain counts. Echoes far from the pin do not steer the forecast. */
+function centerWeights(gridSize: number): Float32Array {
+  const center = (gridSize - 1) / 2;
+  const sigma = Math.max(8, (gridSize - 1) / 8);
+  const reach = -2 * sigma * sigma * Math.log(0.08);
+  const weights = new Float32Array(gridSize * gridSize);
+  for (let y = 0; y < gridSize; y += 1) {
+    for (let x = 0; x < gridSize; x += 1) {
+      const distance = (x - center) ** 2 + (y - center) ** 2;
+      if (distance > reach) continue;
+      weights[y * gridSize + x] = Math.exp(-distance / (2 * sigma * sigma));
+    }
+  }
+  return weights;
+}
+
 /**
  * Displacement of the reflectivity pattern from `prev` to `curr`, in grid cells.
- * Positive dx is east, positive dy is south.
+ * Positive dx is east, positive dy is south. The score is a mean-centered
+ * correlation of the rain nearest the pin, so a smooth field can still show
+ * which way it drifted.
  */
 export function estimateShift(
   prev: Float32Array,
@@ -56,30 +74,42 @@ export function estimateShift(
   let best: Shift | null = null;
   let zero: Shift | null = null;
   const margin = maxShift;
+  const weights = centerWeights(gridSize);
 
   for (let dy = -maxShift; dy <= maxShift; dy += 1) {
     for (let dx = -maxShift; dx <= maxShift; dx += 1) {
-      let product = 0;
-      let currEnergy = 0;
-      let prevEnergy = 0;
-      let count = 0;
+      let sumW = 0;
+      let sumA = 0;
+      let sumB = 0;
+      let sumAB = 0;
+      let sumA2 = 0;
+      let sumB2 = 0;
+      let echo = 0;
 
       for (let y = margin; y < gridSize - margin; y += 1) {
         const currRow = y * gridSize;
         const prevRow = (y - dy) * gridSize;
         for (let x = margin; x < gridSize - margin; x += 1) {
+          const weight = weights[currRow + x] ?? 0;
+          if (weight === 0) continue;
           const a = curr[currRow + x] ?? 0;
           const b = prev[prevRow + (x - dx)] ?? 0;
-          if (a < 5 && b < 5) continue;
-          product += a * b;
-          currEnergy += a * a;
-          prevEnergy += b * b;
-          count += 1;
+          if (a >= 5 || b >= 5) echo += weight;
+          sumW += weight;
+          sumA += weight * a;
+          sumB += weight * b;
+          sumAB += weight * a * b;
+          sumA2 += weight * a * a;
+          sumB2 += weight * b * b;
         }
       }
 
-      if (count < 12 || currEnergy === 0 || prevEnergy === 0) continue;
-      const score = product / Math.sqrt(currEnergy * prevEnergy);
+      if (echo < 6 || sumW < 6) continue;
+      const varA = sumW * sumA2 - sumA * sumA;
+      const varB = sumW * sumB2 - sumB * sumB;
+      if (varA <= 0 || varB <= 0) continue;
+      const score = (sumW * sumAB - sumA * sumB) / Math.sqrt(varA * varB);
+      if (!Number.isFinite(score)) continue;
       const shift = { dx, dy, score };
       if (dx === 0 && dy === 0) zero = shift;
       if (!best || score > best.score) best = shift;
