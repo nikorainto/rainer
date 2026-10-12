@@ -49,6 +49,10 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
       style={{ colorScheme: "dark" }}
     >
+      <head>
+        <link rel="preconnect" href="https://server.arcgisonline.com" />
+        <link rel="preconnect" href="https://tilecache.rainviewer.com" />
+      </head>
       <body className="h-dvh overflow-hidden font-sans text-ink">{children}</body>
     </html>
   );

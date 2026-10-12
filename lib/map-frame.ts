@@ -3,9 +3,15 @@ import type { MapFrame, RadarFrameRef } from "@/lib/types";
 
 export type TimelineStop = {
   offsetMin: number;
-  /** `forecast` reuses the latest scan. The clouds stay put. */
+  /** `forecast` reuses the latest scan and does not advance past the current minute. */
   kind: "past" | "nowcast" | "forecast";
   path: string;
+};
+
+export type MapShift = {
+  /** Native radar-zoom pixels. Positive east and south. */
+  east: number;
+  south: number;
 };
 
 /** Typical spacing of the observed scans, in minutes. RainViewer is usually 10. */
@@ -64,6 +70,36 @@ export function timelineStops(frames: MapFrame[]): TimelineStop[] {
 
   stops.sort((a, b) => a.offsetMin - b.offsetMin);
   return stops;
+}
+
+/**
+ * Minutes to slide a held scan forward so it catches up with the current minute.
+ * A real scan stays put. The current minute, and later steps that reuse that
+ * scan, slide by the scan's age and no further.
+ */
+export function catchUpMin(stop: TimelineStop, frames: MapFrame[]): number {
+  if (stop.kind === "nowcast") return 0;
+  let imageOffset: number | null = null;
+  for (const frame of frames) {
+    if (frame.kind !== "past" || frame.path !== stop.path) continue;
+    if (imageOffset == null || frame.offsetMin > imageOffset) imageOffset = frame.offsetMin;
+  }
+  if (imageOffset == null) return 0;
+  const age = Math.max(0, -imageOffset);
+  if (stop.kind === "forecast") return age;
+  return Math.max(0, Math.min(age, stop.offsetMin - imageOffset));
+}
+
+/** Native-zoom pixel shift for `minutes` of the pin's motion. Too small to see becomes zero. */
+export function catchUpShift(
+  motion: { eastPxPerMin: number; southPxPerMin: number } | null,
+  minutes: number,
+): MapShift {
+  if (!motion || minutes <= 0) return { east: 0, south: 0 };
+  const east = motion.eastPxPerMin * minutes;
+  const south = motion.southPxPerMin * minutes;
+  if (Math.hypot(east, south) < 0.5) return { east: 0, south: 0 };
+  return { east, south };
 }
 
 /** Turn a RainViewer catalog into slider frames. Offsets are minutes from `nowSec`. */

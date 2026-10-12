@@ -5,7 +5,7 @@ import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { RainChart } from "@/components/RainChart";
 import { formatClock, formatMm } from "@/lib/format";
 import type { TimelineStop } from "@/lib/map-frame";
-import { rainSpans } from "@/lib/nowcast";
+import { rainSpans } from "@/lib/rain-spans";
 import { loadShowCoordinates, saveShowCoordinates, type Pin } from "@/lib/storage";
 import type { NowcastOk, NowcastSample, RainBand } from "@/lib/types";
 

@@ -17,7 +17,7 @@ Next.js writes `next-env.d.ts` on the first `dev` or `build`. That file is gitig
 
 ## Data
 
-- Radar frames and tiles come from the RainViewer public maps feed. Past frames are observed scans. When RainViewer publishes nowcast frames, those are sampled at the pin. When that list is empty, the next hour is estimated by moving the recent reflectivity field forward.
+- Radar frames and tiles come from the RainViewer public maps feed. Past frames are observed scans. When RainViewer publishes nowcast frames, those are sampled at the pin. When that list is empty, the next hour at the pin is estimated by moving the recent reflectivity field forward. The map image only slides that latest scan up to the current minute.
 - Rain rate uses the Marshall–Palmer relation, Z = 200 R^1.6.
 - The basemap is Esri World Dark Gray Canvas.
 - Place search uses the public [Photon](https://photon.komoot.io/) service, which is OpenStreetMap data.
@@ -41,5 +41,5 @@ No environment variables. Install with Bun, pinned in `packageManager`. Producti
 ## Limits
 
 - Some coordinates have no radar coverage. The panel says so instead of showing a dry hour.
-- When RainViewer has not published a future image, later map frames keep the latest scan. The pin chart can still move ahead. The panel menu says that future is an estimate.
+- When RainViewer has not published a future image, the map keeps the latest scan. If that scan is already a few minutes old, the current minute slides it by the motion at the pin, and later steps hold that picture. The pin chart can still move ahead. The panel menu says that future is an estimate.
 - Alerts are a local reading of that estimate, not a warning product.

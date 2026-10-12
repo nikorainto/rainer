@@ -8,7 +8,7 @@ import { forecastFootnote, NowcastPanel } from "@/components/NowcastPanel";
 import { TimelineBar } from "@/components/TimelineBar";
 import { useNowcastMonitor } from "@/hooks/useNowcastMonitor";
 import { useRadarCatalog } from "@/hooks/useRadarCatalog";
-import { nearestStopIndex, timelineStops } from "@/lib/map-frame";
+import { catchUpMin, catchUpShift, nearestStopIndex, timelineStops } from "@/lib/map-frame";
 import { installAudioUnlock, setAlertsMuted } from "@/lib/sound";
 import {
   loadLastPin,
@@ -154,6 +154,8 @@ export function Dashboard() {
   const selected = closestSample(monitor.data?.samples ?? [], stop?.offsetMin ?? 0);
   const host = monitor.data?.host ?? catalog.host;
   const frozen = stop?.kind === "forecast";
+  const catchUp = stop ? catchUpMin(stop, frames) : 0;
+  const shift = catchUpShift(monitor.data?.motion ?? null, catchUp);
   const tileUrl = host && stop ? radarTileUrl(host, stop.path) : null;
 
   return (
@@ -164,6 +166,8 @@ export function Dashboard() {
         hasPlace={place != null}
         tileUrl={tileUrl}
         frozen={frozen}
+        shiftEast={shift.east}
+        shiftSouth={shift.south}
         band={selected?.band ?? monitor.data?.summary.bandNow ?? "none"}
         alert={monitor.alert?.type === "immediate"}
         follow={follow}
@@ -229,6 +233,12 @@ export function Dashboard() {
           disabled={stops.length < 2}
           sample={selected}
         />
+        {catchUp >= 1 ? (
+          <p className="text-[11px] leading-4 text-muted">
+            Latest scan is {catchUp} min old
+            {shift.east !== 0 || shift.south !== 0 ? ", shifted to now" : ""}.
+          </p>
+        ) : null}
         {footnote ? <p className="text-[11px] leading-4 text-muted">{footnote}</p> : null}
       </div>
     </div>

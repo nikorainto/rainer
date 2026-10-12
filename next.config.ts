@@ -21,6 +21,9 @@ const nextConfig: NextConfig = {
   poweredByHeader: false,
   cacheComponents: true,
   partialPrefetching: true,
+  experimental: {
+    inlineCss: true,
+  },
   turbopack: {
     rules: {
       "*.css": {
