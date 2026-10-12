@@ -1,0 +1,206 @@
+@import "tailwindcss";
+
+@theme inline {
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+  --color-ink: #e7f0f7;
+  --color-muted: #8aa0b4;
+  --color-panel: #0c1824;
+  --color-line: #1c3348;
+  --color-dry: #3ee0b0;
+  --color-rain: #ffb020;
+  --color-storm: #ff5d4a;
+  --color-sea: #061018;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  background:
+    radial-gradient(1000px 420px at 0% -10%, rgba(62, 224, 176, 0.08), transparent 55%),
+    radial-gradient(800px 380px at 100% 0%, rgba(255, 176, 32, 0.07), transparent 50%),
+    var(--color-sea);
+  color: var(--color-ink);
+}
+
+.leaflet-container {
+  height: 100%;
+  width: 100%;
+  background: #061018;
+  font-family: inherit;
+}
+
+.leaflet-container img {
+  max-width: none !important;
+  max-height: none !important;
+}
+
+.leaflet-control-attribution {
+  background: rgba(6, 16, 24, 0.82) !important;
+  color: #8aa0b4 !important;
+  font-size: 10px !important;
+  max-width: min(70%, 28rem);
+}
+
+.leaflet-control-attribution a {
+  color: #c5d5e4 !important;
+}
+
+.leaflet-bar a,
+.leaflet-bar a:hover {
+  background: #0c1824 !important;
+  color: #e7f0f7 !important;
+  border-bottom-color: #1c3348 !important;
+}
+
+.radar-map.leaflet-container {
+  cursor: crosshair;
+}
+
+.radar-map .leaflet-control {
+  cursor: pointer;
+}
+
+.radar-map .leaflet-bottom {
+  bottom: calc(18.5rem + max(0.75rem, env(safe-area-inset-bottom, 0px)) + 0.5rem);
+  z-index: 400;
+}
+
+.radar-map .leaflet-top {
+  top: 6.25rem;
+  z-index: 400;
+}
+
+@media (min-width: 1024px) {
+  .radar-map .leaflet-bottom {
+    bottom: 1rem;
+  }
+}
+
+.radar-map .leaflet-control-attribution {
+  max-width: 14rem;
+  white-space: normal;
+}
+
+.timeline-range {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: var(--thumb, 16px);
+  margin: 0;
+  padding: 0;
+  background: none;
+  border-radius: 999px;
+  outline: none;
+}
+
+.timeline-range::-webkit-slider-runnable-track {
+  height: 4px;
+  background: transparent;
+  border: none;
+}
+
+.timeline-range::-moz-range-track {
+  height: 4px;
+  background: transparent;
+  border: none;
+}
+
+.timeline-range:disabled {
+  opacity: 0.4;
+}
+
+.timeline-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  box-sizing: border-box;
+  width: var(--thumb, 16px);
+  height: var(--thumb, 16px);
+  border-radius: 999px;
+  background: #e7f0f7;
+  border: 2px solid #061018;
+  box-shadow: 0 0 0 1px #8aa0b4;
+  cursor: pointer;
+}
+
+.timeline-range::-moz-range-thumb {
+  box-sizing: border-box;
+  width: var(--thumb, 16px);
+  height: var(--thumb, 16px);
+  border-radius: 999px;
+  background: #e7f0f7;
+  border: 2px solid #061018;
+  cursor: pointer;
+}
+
+.timeline-range:focus-visible::-webkit-slider-thumb {
+  box-shadow: 0 0 0 3px rgba(62, 224, 176, 0.45);
+}
+
+@keyframes alert-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.alert-pop {
+  animation: alert-in 180ms ease-out;
+}
+
+button,
+.timeline-range,
+.timeline-range::-webkit-slider-thumb,
+.timeline-range::-moz-range-thumb,
+.leaflet-bar a {
+  cursor: pointer;
+}
+
+button:disabled,
+.timeline-range:disabled {
+  cursor: default;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  button:not(:disabled),
+  .leaflet-bar a {
+    transition:
+      background-color 140ms ease,
+      border-color 140ms ease,
+      color 140ms ease,
+      transform 140ms ease;
+  }
+
+  button:not(:disabled):hover,
+  .leaflet-bar a:hover {
+    background-color: rgb(255 255 255 / 0.08);
+  }
+
+  button:not(:disabled):active,
+  .leaflet-bar a:active {
+    transform: scale(0.96);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .alert-pop {
+    animation: none;
+  }
+
+  button:not(:disabled),
+  .leaflet-bar a {
+    transition: none;
+  }
+
+  button:not(:disabled):active,
+  .leaflet-bar a:active {
+    transform: none;
+  }
+}

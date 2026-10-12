@@ -1,0 +1,6 @@
+---
+description: Do not start a second Next.js dev server in this workspace
+alwaysApply: true
+---
+
+Do not run `bun run dev`, `npm run dev`, `next dev`, or any other command that starts the local dev server. The user already runs it in their own terminal. A second server collides with it.
