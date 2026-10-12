@@ -12,10 +12,29 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+const description = "Live radar at one pin, for the past hour and the next.";
+
+function siteUrl(): URL {
+  const host = process.env.VERCEL_PROJECT_PRODUCTION_URL ?? process.env.VERCEL_URL;
+  if (host) return new URL(`https://${host}`);
+  return new URL("http://localhost:3000");
+}
+
 export const metadata: Metadata = {
+  metadataBase: siteUrl(),
   title: "Rainer",
-  description:
-    "A 30–60 minute rain estimate from live RainViewer radar. Not an official forecast or warning.",
+  description,
+  openGraph: {
+    title: "Rainer",
+    description,
+    siteName: "Rainer",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Rainer",
+    description,
+  },
 };
 
 export const viewport: Viewport = {

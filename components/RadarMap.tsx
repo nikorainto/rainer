@@ -51,11 +51,9 @@ export default function RadarMap({
       maxZoom={14}
       className="radar-map h-full w-full"
       zoomControl
+      attributionControl={false}
     >
-      <TileLayer
-        attribution="Tiles &copy; Esri &mdash; Esri, DeLorme, NAVTEQ · Places &copy; <a href=&quot;https://www.openstreetmap.org/copyright&quot;>OpenStreetMap</a>"
-        url="https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}"
-      />
+      <TileLayer url="https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}" />
       <RadarTiles url={tileUrl} frozen={frozen} />
       <TileLayer
         url="https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Reference/MapServer/tile/{z}/{y}/{x}"
@@ -112,7 +110,6 @@ function RadarTiles({ url, frozen }: { url: string | null; frozen: boolean }) {
         maxNativeZoom: 7,
         maxZoom: 14,
         zIndex: 250,
-        attribution: 'Radar &copy; <a href="https://www.rainviewer.com/">RainViewer</a>',
       });
       layerRef.current.addTo(map);
     } else {
@@ -173,7 +170,7 @@ function FrameFinland() {
       if (framed.current || map.getSize().y < 80) return;
       framed.current = true;
       const wide = map.getSize().x >= 1024;
-      const bottom = wide ? 28 : Math.round(map.getSize().y * 0.46);
+      const bottom = wide ? 28 : 200;
       map.fitBounds(FINLAND_BOUNDS, {
         paddingTopLeft: [28, 88],
         paddingBottomRight: [28, bottom],

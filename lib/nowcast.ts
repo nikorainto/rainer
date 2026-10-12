@@ -1,4 +1,13 @@
-import { GRID_SIZE, GRID_STEP, HEAVY_DBZ, MAX_SHIFT, RAIN_DBZ, SAMPLE_ZOOM } from "@/lib/constants";
+import {
+  FUTURE_HORIZON_MIN,
+  GRID_SIZE,
+  GRID_STEP,
+  HEAVY_DBZ,
+  MAX_SHIFT,
+  PAST_HORIZON_MIN,
+  RAIN_DBZ,
+  SAMPLE_ZOOM,
+} from "@/lib/constants";
 import { toDisplayMotion } from "@/lib/display-motion";
 import { formatMm, roundTo } from "@/lib/format";
 import { metersPerPixel } from "@/lib/geo";
@@ -49,7 +58,9 @@ export function rainSpans(samples: NowcastSample[]): { start: number; end: numbe
 }
 
 function minutesUntilRain(samples: NowcastSample[]): number | null {
-  const window = samples.filter((sample) => sample.offsetMin >= 0 && sample.offsetMin <= 60);
+  const window = samples.filter(
+    (sample) => sample.offsetMin >= 0 && sample.offsetMin <= FUTURE_HORIZON_MIN,
+  );
   const now = window.find((sample) => sample.offsetMin === 0);
   if (now && now.dbz > RAIN_DBZ) return null;
 
@@ -81,11 +92,11 @@ function headlineFor(
     return `Rain may start in ${minutesUntil} mins`;
   }
   if (bandNow === "drizzle") return "Drizzle now";
-  if (minutesUntil != null && minutesUntil < 60) {
+  if (minutesUntil != null && minutesUntil < FUTURE_HORIZON_MIN) {
     const dryFor = Math.max(5, Math.floor((minutesUntil - 1) / 5) * 5);
     return `Looks dry for the next ${dryFor} mins`;
   }
-  return "Looks dry for the next 60 mins";
+  return `Looks dry for the next ${FUTURE_HORIZON_MIN} mins`;
 }
 
 function detailFor(args: {
@@ -139,7 +150,9 @@ function mapFramesFor(
 
 function emptySummary(coverage: boolean): NowcastOk["summary"] {
   return {
-    headline: coverage ? "Looks dry for the next 60 mins" : "No radar coverage here",
+    headline: coverage
+      ? `Looks dry for the next ${FUTURE_HORIZON_MIN} mins`
+      : "No radar coverage here",
     detail: coverage
       ? "No steady rain is lined up for this pin in the next hour."
       : "RainViewer has no radar covering this coordinate.",
@@ -232,10 +245,10 @@ export function buildNowcast(input: {
   ];
 
   const oldest = observed[0];
-  const oldestMin = oldest ? Math.round((oldest.time - input.evaluatedAt) / 60) : -30;
-  const sampleStart = Math.min(-30, Math.floor(oldestMin / 5) * 5);
+  const oldestMin = oldest ? Math.round((oldest.time - input.evaluatedAt) / 60) : -PAST_HORIZON_MIN;
+  const sampleStart = Math.max(-PAST_HORIZON_MIN, Math.min(-30, Math.floor(oldestMin / 5) * 5));
   const samples: NowcastSample[] = [];
-  for (let offsetMin = sampleStart; offsetMin <= 60; offsetMin += 5) {
+  for (let offsetMin = sampleStart; offsetMin <= FUTURE_HORIZON_MIN; offsetMin += 5) {
     const time = input.evaluatedAt + offsetMin * 60;
     let dbz = 0;
     if (time <= latest.time) {

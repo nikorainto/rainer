@@ -52,7 +52,7 @@ export function RainChart({
 
   return (
     <figure className="m-0 w-full">
-      <div className="relative h-12 w-full">
+      <div className="relative h-8 w-full">
         <svg
           viewBox={`0 0 ${VB_W} ${VB_H}`}
           preserveAspectRatio="none"

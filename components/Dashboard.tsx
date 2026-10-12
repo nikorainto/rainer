@@ -150,6 +150,7 @@ export function Dashboard() {
   }
 
   const stop = stops[nearestStopIndex(stops, offset)] ?? null;
+  const footnote = forecastFootnote(monitor.data);
   const selected = closestSample(monitor.data?.samples ?? [], stop?.offsetMin ?? 0);
   const host = monitor.data?.host ?? catalog.host;
   const frozen = stop?.kind === "forecast";
@@ -192,13 +193,7 @@ export function Dashboard() {
         ) : null}
       </div>
 
-      {frozen ? (
-        <p className="pointer-events-none absolute top-[30%] left-1/2 z-[450] max-w-64 -translate-x-1/2 rounded-full bg-sea/80 px-3 py-2 text-center text-xs text-ink">
-          Future frames hold the latest scan. The chart still estimates this pin.
-        </p>
-      ) : null}
-
-      <div className="absolute inset-x-3 bottom-[max(0.75rem,env(safe-area-inset-bottom))] z-[500] flex max-h-[70dvh] flex-col gap-2 overflow-y-auto rounded-2xl border border-line bg-sea/95 px-3 py-2.5 shadow-2xl backdrop-blur-sm [--thumb:16px] lg:inset-x-auto lg:bottom-4 lg:left-4 lg:w-[22rem]">
+      <div className="absolute inset-x-3 bottom-[max(0.5rem,env(safe-area-inset-bottom))] z-[500] flex max-h-[50dvh] flex-col gap-1.5 overflow-y-auto rounded-2xl border border-line bg-sea/95 px-2.5 py-2 shadow-2xl backdrop-blur-sm [--thumb:16px] lg:inset-x-auto lg:bottom-4 lg:left-4 lg:w-[22rem]">
         <NowcastPanel
           place={place}
           data={monitor.data}
@@ -234,9 +229,7 @@ export function Dashboard() {
           disabled={stops.length < 2}
           sample={selected}
         />
-        <p className="text-[11px] leading-4 text-muted">
-          {forecastFootnote(monitor.data, monitor.loading)}
-        </p>
+        {footnote ? <p className="text-[11px] leading-4 text-muted">{footnote}</p> : null}
       </div>
     </div>
   );

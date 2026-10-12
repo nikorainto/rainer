@@ -1,6 +1,5 @@
+import { FUTURE_HORIZON_MIN, PAST_HORIZON_MIN } from "@/lib/constants";
 import type { MapFrame, RadarFrameRef } from "@/lib/types";
-
-const FUTURE_HORIZON_MIN = 60;
 
 export type TimelineStop = {
   offsetMin: number;
@@ -26,9 +25,10 @@ export function frameStepMin(frames: MapFrame[]): number {
 }
 
 /**
- * One stop per real radar image. Published forecast frames extend the slider.
- * Otherwise the future steps keep the latest scan frozen, so the pin chart can
- * move ahead without pretending the clouds are animating.
+ * Slider stops for the last hour of scans and the next hour.
+ * The current minute is always a stop, using the latest scan when no image
+ * lands on it. Published forecast frames extend the slider. Otherwise later
+ * steps hold that scan, counted from now rather than from the scan's age.
  */
 export function timelineStops(frames: MapFrame[]): TimelineStop[] {
   const past = frames
@@ -38,25 +38,31 @@ export function timelineStops(frames: MapFrame[]): TimelineStop[] {
     .filter((frame) => frame.kind === "nowcast")
     .sort((a, b) => a.offsetMin - b.offsetMin);
   const step = frameStepMin(frames);
-  const latest = past[past.length - 1];
+  const latest = past.filter((frame) => frame.offsetMin <= 2).at(-1);
   const stops: TimelineStop[] = [];
 
   for (const frame of past) {
-    if (frame.offsetMin > 2) continue;
+    if (frame.offsetMin > 2 || frame.offsetMin < -PAST_HORIZON_MIN) continue;
     stops.push({ offsetMin: frame.offsetMin, kind: "past", path: frame.path });
   }
 
   if (nowcast.length > 0) {
     for (const frame of nowcast) {
-      if (frame.offsetMin <= 0 || frame.offsetMin > FUTURE_HORIZON_MIN + step / 2) continue;
+      if (frame.offsetMin < 0 || frame.offsetMin > FUTURE_HORIZON_MIN + step / 2) continue;
       stops.push({ offsetMin: frame.offsetMin, kind: "nowcast", path: frame.path });
     }
   } else if (latest) {
-    for (let offset = latest.offsetMin + step; offset <= FUTURE_HORIZON_MIN; offset += step) {
+    for (let offset = step; offset <= FUTURE_HORIZON_MIN; offset += step) {
+      if (stops.some((stop) => stop.offsetMin === offset)) continue;
       stops.push({ offsetMin: offset, kind: "forecast", path: latest.path });
     }
   }
 
+  if (latest && !stops.some((stop) => stop.offsetMin === 0)) {
+    stops.push({ offsetMin: 0, kind: "past", path: latest.path });
+  }
+
+  stops.sort((a, b) => a.offsetMin - b.offsetMin);
   return stops;
 }
 

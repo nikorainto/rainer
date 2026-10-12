@@ -17,3 +17,9 @@ export const RAIN_DBZ = 20;
 export const HEAVY_DBZ = 40;
 
 export const POLL_MS = 3 * 60 * 1000;
+
+/** How far the timeline looks behind the current minute. */
+export const PAST_HORIZON_MIN = 60;
+
+/** How far the timeline looks ahead of the current minute. */
+export const FUTURE_HORIZON_MIN = 60;

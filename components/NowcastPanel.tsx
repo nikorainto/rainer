@@ -1,10 +1,12 @@
 "use client";
 
+import { Ellipsis } from "lucide-react";
+import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { RainChart } from "@/components/RainChart";
 import { formatClock, formatMm } from "@/lib/format";
 import type { TimelineStop } from "@/lib/map-frame";
 import { rainSpans } from "@/lib/nowcast";
-import type { Pin } from "@/lib/storage";
+import { loadShowCoordinates, saveShowCoordinates, type Pin } from "@/lib/storage";
 import type { NowcastOk, NowcastSample, RainBand } from "@/lib/types";
 
 const BAND_TEXT = {
@@ -14,22 +16,17 @@ const BAND_TEXT = {
   heavy: "text-storm",
 } as const;
 
-export function forecastFootnote(data: NowcastOk | null, loading: boolean): string {
-  if (!data?.coverage) return "Estimate from radar. Not an official forecast or warning.";
+export function forecastFootnote(data: NowcastOk | null): string | null {
+  if (!data?.coverage) return null;
   const spans = rainSpans(data.samples);
-  const when =
-    spans.length === 0
-      ? "No rain on this timeline"
-      : `Rain ${spans
-          .map((span) =>
-            span.start === span.end
-              ? formatClock(span.start)
-              : `${formatClock(span.start)}–${formatClock(span.end)}`,
-          )
-          .join(" · ")}`;
-  const estimate = data.source === "motion-vector" ? " Future is an estimate." : "";
-  const updating = loading ? " Updating." : "";
-  return `${when}.${estimate}${updating} Not an official forecast.`;
+  if (spans.length === 0) return null;
+  return `Rain ${spans
+    .map((span) =>
+      span.start === span.end
+        ? formatClock(span.start)
+        : `${formatClock(span.start)}–${formatClock(span.end)}`,
+    )
+    .join(" · ")}`;
 }
 
 export function NowcastPanel({
@@ -52,19 +49,43 @@ export function NowcastPanel({
   onRetry: () => void;
 }) {
   const tick = selected ?? data?.samples.find((sample) => sample.offsetMin === 0) ?? null;
+  const [showCoordinates, setShowCoordinates] = useState(() => loadShowCoordinates());
+  const [menuOpen, setMenuOpen] = useState(false);
 
   return (
-    <aside className="flex flex-col gap-2">
-      <div className="min-w-0">
+    <aside className="flex flex-col gap-1">
+      <PanelMenu
+        open={menuOpen}
+        showCoordinates={showCoordinates}
+        onToggleOpen={() => setMenuOpen((open) => !open)}
+        onClose={() => setMenuOpen(false)}
+        onToggleCoordinates={() => {
+          setShowCoordinates((current) => {
+            const next = !current;
+            saveShowCoordinates(next);
+            return next;
+          });
+        }}
+        trailing={
+          tick ? (
+            <h1
+              className={`shrink-0 text-sm font-semibold tracking-tight ${BAND_TEXT[tick.band]}`}
+              aria-live="polite"
+            >
+              {tickTitle(tick.band)}
+              <span className="ml-1.5 font-mono">{formatMm(tick.rateMmHr)}</span>
+              <span className="ml-0.5 text-[11px] font-normal text-muted">mm/h</span>
+            </h1>
+          ) : null
+        }
+      >
         <h2 className="truncate text-sm font-medium text-ink">{place?.name ?? "Tap the map"}</h2>
-        {place ? (
+        {place && showCoordinates ? (
           <p className="font-mono text-[11px] text-muted">
             {place.lat.toFixed(4)}, {place.lon.toFixed(4)}
           </p>
-        ) : (
-          <p className="text-sm text-muted">Search, or tap the map.</p>
-        )}
-      </div>
+        ) : null}
+      </PanelMenu>
 
       {place && !data && loading ? <PanelSkeleton /> : null}
 
@@ -88,8 +109,10 @@ export function NowcastPanel({
               Couldn&apos;t refresh — showing the last reading. {error}
             </p>
           ) : null}
-          <h1 className="text-xl font-semibold tracking-tight text-ink">{data.summary.headline}</h1>
-          <p className="text-sm text-muted">{data.summary.detail}</p>
+          <h1 className="text-base font-semibold tracking-tight text-ink">
+            {data.summary.headline}
+          </h1>
+          <p className="text-xs text-muted">{data.summary.detail}</p>
         </div>
       ) : null}
 
@@ -100,21 +123,126 @@ export function NowcastPanel({
               Couldn&apos;t refresh — showing the last reading. {error}
             </p>
           ) : null}
-          {tick ? (
-            <div className="flex items-baseline justify-between gap-3" aria-live="polite">
-              <h1 className={`text-2xl font-semibold tracking-tight ${BAND_TEXT[tick.band]}`}>
-                {tickTitle(tick.band)}
-              </h1>
-              <p className={`font-mono text-2xl font-semibold ${BAND_TEXT[tick.band]}`}>
-                {formatMm(tick.rateMmHr)}
-                <span className="ml-1 text-sm font-normal text-muted">mm/h</span>
-              </p>
-            </div>
-          ) : null}
           <RainChart samples={data.samples} markerOffset={markerOffset} stops={stops} />
         </>
       ) : null}
     </aside>
+  );
+}
+
+function PanelMenu({
+  open,
+  showCoordinates,
+  onToggleOpen,
+  onClose,
+  onToggleCoordinates,
+  trailing,
+  children,
+}: {
+  open: boolean;
+  showCoordinates: boolean;
+  onToggleOpen: () => void;
+  onClose: () => void;
+  onToggleCoordinates: () => void;
+  trailing: ReactNode;
+  children: ReactNode;
+}) {
+  const menuId = useId();
+  const rootRef = useRef<HTMLDivElement>(null);
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
+
+  useEffect(() => {
+    if (!open) return;
+    const onPointer = (event: PointerEvent) => {
+      if (!rootRef.current?.contains(event.target as Node)) onCloseRef.current();
+    };
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onCloseRef.current();
+    };
+    window.addEventListener("pointerdown", onPointer);
+    window.addEventListener("keydown", onKey);
+    return () => {
+      window.removeEventListener("pointerdown", onPointer);
+      window.removeEventListener("keydown", onKey);
+    };
+  }, [open]);
+
+  return (
+    <div ref={rootRef}>
+      <div className="flex items-center gap-2">
+        <div className="min-w-0 flex-1">{children}</div>
+        {trailing}
+        <button
+          type="button"
+          className="flex h-8 w-8 items-center justify-center rounded-full border border-line text-muted"
+          aria-expanded={open}
+          aria-controls={menuId}
+          aria-label={open ? "Close menu" : "Open menu"}
+          onClick={onToggleOpen}
+        >
+          <Ellipsis size={16} />
+        </button>
+      </div>
+      {open ? (
+        <div id={menuId} className="mt-2 rounded-xl border border-line bg-panel px-3 py-2">
+          <button
+            type="button"
+            role="switch"
+            aria-checked={showCoordinates}
+            onClick={onToggleCoordinates}
+            className="flex min-h-11 w-full items-center justify-between gap-3 text-left text-sm text-ink"
+          >
+            <span>Show coordinates</span>
+            <span
+              className={`relative inline-block h-6 w-10 shrink-0 rounded-full border ${
+                showCoordinates ? "border-dry bg-dry/20" : "border-line bg-sea"
+              }`}
+            >
+              <span
+                className={`absolute top-0.5 h-4 w-4 rounded-full bg-ink ${
+                  showCoordinates ? "left-5" : "left-0.5"
+                }`}
+              />
+            </span>
+          </button>
+          <p className="mt-3 text-[11px] leading-4 text-muted">
+            Future frames are an estimate, not an official forecast.
+          </p>
+          <p className="mt-2 text-[11px] leading-4 text-muted">
+            Radar{" "}
+            <a
+              className="underline decoration-line"
+              href="https://www.rainviewer.com/"
+              target="_blank"
+              rel="noreferrer"
+            >
+              RainViewer
+            </a>
+            {" · "}
+            Map{" "}
+            <a
+              className="underline decoration-line"
+              href="https://www.esri.com/"
+              target="_blank"
+              rel="noreferrer"
+            >
+              Esri
+            </a>
+            {" · "}
+            Places{" "}
+            <a
+              className="underline decoration-line"
+              href="https://www.openstreetmap.org/copyright"
+              target="_blank"
+              rel="noreferrer"
+            >
+              OpenStreetMap
+            </a>
+          </p>
+        </div>
+      ) : null}
+    </div>
   );
 }
 
@@ -128,9 +256,8 @@ function tickTitle(band: RainBand): string {
 function PanelSkeleton() {
   return (
     <div className="flex flex-col gap-2" aria-hidden>
-      <div className="h-8 w-3/5 animate-pulse rounded-lg bg-white/5" />
-      <div className="h-12 animate-pulse rounded-lg bg-white/5" />
-      <p className="text-sm text-muted">Reading radar at this pin…</p>
+      <div className="h-8 animate-pulse rounded-lg bg-white/5" />
+      <p className="text-xs text-muted">Reading radar at this pin…</p>
     </div>
   );
 }

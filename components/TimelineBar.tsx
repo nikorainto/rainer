@@ -65,7 +65,7 @@ export function TimelineBar({
         />
       </div>
       <div
-        className="relative mt-0.5 h-4 text-[10px] uppercase tracking-wide text-muted"
+        className="relative mt-0.5 h-3.5 text-[10px] leading-none uppercase tracking-wide text-muted"
         style={{ marginInline: "calc(var(--thumb, 16px) / 2)" }}
       >
         <span>{stop ? formatLead(stops[0]?.offsetMin ?? 0) : "−30 min"}</span>
@@ -78,10 +78,10 @@ export function TimelineBar({
           {stops.length > 0 ? formatLead(stops[last]?.offsetMin ?? 0) : "+60 min"}
         </span>
       </div>
-      <div className="mt-1.5 flex items-center gap-2">
+      <div className="mt-1 flex items-center gap-1.5">
         <button
           type="button"
-          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-line bg-panel text-ink disabled:opacity-40"
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-line bg-panel text-ink disabled:opacity-40"
           onClick={onTogglePlay}
           disabled={disabled || stops.length < 2}
           aria-pressed={playing}
@@ -91,7 +91,7 @@ export function TimelineBar({
         </button>
         <button
           type="button"
-          className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full border text-ink disabled:opacity-40 ${
+          className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full border text-ink disabled:opacity-40 ${
             loop ? "border-dry bg-dry/15 text-dry" : "border-line bg-panel"
           }`}
           onClick={onToggleLoop}

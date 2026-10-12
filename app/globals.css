@@ -38,17 +38,6 @@ body {
   max-height: none !important;
 }
 
-.leaflet-control-attribution {
-  background: rgba(6, 16, 24, 0.82) !important;
-  color: #8aa0b4 !important;
-  font-size: 10px !important;
-  max-width: min(70%, 28rem);
-}
-
-.leaflet-control-attribution a {
-  color: #c5d5e4 !important;
-}
-
 .leaflet-bar a,
 .leaflet-bar a:hover {
   background: #0c1824 !important;
@@ -64,25 +53,9 @@ body {
   cursor: pointer;
 }
 
-.radar-map .leaflet-bottom {
-  bottom: calc(18.5rem + max(0.75rem, env(safe-area-inset-bottom, 0px)) + 0.5rem);
-  z-index: 400;
-}
-
 .radar-map .leaflet-top {
   top: 6.25rem;
   z-index: 400;
-}
-
-@media (min-width: 1024px) {
-  .radar-map .leaflet-bottom {
-    bottom: 1rem;
-  }
-}
-
-.radar-map .leaflet-control-attribution {
-  max-width: 14rem;
-  white-space: normal;
 }
 
 .timeline-range {

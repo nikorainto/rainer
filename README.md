@@ -1,6 +1,6 @@
 # Rainer
 
-A 30–60 minute rain estimate for one map pin, drawn from live [RainViewer](https://www.rainviewer.com/) radar.
+Live radar at one map pin, for the past hour and the next, drawn from [RainViewer](https://www.rainviewer.com/).
 
 This is not an official forecast or warning. Do not use it for safety decisions.
 
@@ -22,7 +22,7 @@ Next.js writes `next-env.d.ts` on the first `dev` or `build`. That file is gitig
 - The basemap is Esri World Dark Gray Canvas.
 - Place search uses the public [Photon](https://photon.komoot.io/) service, which is OpenStreetMap data.
 
-RainViewer, Esri, and OpenStreetMap require attribution. The map shows it.
+RainViewer, Esri, and OpenStreetMap require attribution. The credit sits in the panel menu.
 
 ## Checks
 
@@ -34,12 +34,12 @@ That runs Biome, the TypeScript check, and the unit tests.
 
 ## Deploy
 
-No environment variables. Install with Bun, as set in `packageManager`. Next.js 16 needs Node.js 20.9 or newer, which is what Vercel runs. `bun run build` is the production build.
+No environment variables. Install with Bun, pinned in `packageManager`. Production runs on Node.js 24, the current LTS (`engines.node` is `24.x`, so Vercel stays on that major). `bun run build` is the production build.
 
 `/api/nowcast` downloads radar images on the server and can run for up to 30 seconds. Successful radar responses can be cached at the edge for about a minute, and place lookups for a day. Each server instance also limits how fast one client can call those routes.
 
 ## Limits
 
 - Some coordinates have no radar coverage. The panel says so instead of showing a dry hour.
-- When RainViewer has not published a future image, later map frames keep the latest scan in place. The pin chart can still move ahead, and it is marked as an estimate.
+- When RainViewer has not published a future image, later map frames keep the latest scan. The pin chart can still move ahead. The panel menu says that future is an estimate.
 - Alerts are a local reading of that estimate, not a warning product.

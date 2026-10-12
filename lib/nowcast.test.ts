@@ -163,6 +163,30 @@ test("rain spans skip dry gaps", () => {
   ]);
 });
 
+test("the pin chart keeps the last hour, not the whole archive", () => {
+  const size = 11;
+  const start = 1_700_000_000;
+  const observed = Array.from({ length: 14 }, (_, index) => ({
+    time: start + index * 600,
+    path: `/v2/radar/${index}`,
+    grid: new Float32Array(size * size),
+  }));
+  const latest = observed.at(-1);
+  if (!latest) throw new Error("expected a latest scan");
+  const result = buildNowcast({
+    evaluatedAt: latest.time,
+    lat: 60,
+    host: "https://tilecache.rainviewer.com",
+    coverage: true,
+    observed,
+    nowcastFrames: [],
+    gridSize: size,
+    maxShift: 2,
+  });
+  assert.equal(result.samples[0]?.offsetMin, -60);
+  assert.equal(result.samples.at(-1)?.offsetMin, 60);
+});
+
 test("missing coverage does not invent rain", () => {
   const result = buildNowcast({
     evaluatedAt: 1_700_000_000,

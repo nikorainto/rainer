@@ -8,6 +8,7 @@ export type Pin = {
 
 const LAST_KEY = "rainer:last";
 const SOUND_KEY = "rainer:sound";
+const COORDS_KEY = "rainer:coords";
 
 export function loadLastPin(): Pin | null {
   const parsed = readJson<unknown>(LAST_KEY);
@@ -26,6 +27,16 @@ export function loadSoundEnabled(): boolean {
 export function saveSoundEnabled(enabled: boolean) {
   if (typeof window === "undefined") return;
   window.localStorage.setItem(SOUND_KEY, enabled ? "1" : "0");
+}
+
+export function loadShowCoordinates(): boolean {
+  if (typeof window === "undefined") return false;
+  return window.localStorage.getItem(COORDS_KEY) === "1";
+}
+
+export function saveShowCoordinates(enabled: boolean) {
+  if (typeof window === "undefined") return;
+  window.localStorage.setItem(COORDS_KEY, enabled ? "1" : "0");
 }
 
 function readJson<T>(key: string): T | null {

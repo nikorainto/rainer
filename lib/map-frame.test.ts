@@ -72,3 +72,36 @@ test("the play head snaps to a real stop", () => {
   assert.equal(nearestStopIndex(stops, 4), 2);
   assert.equal(stops[2]?.offsetMin, 0);
 });
+
+test("stops include now and drop scans older than an hour", () => {
+  const frames = past([-130, -120, -70, -60, -50, -40, -30, -20, -10, -7]);
+  const stops = timelineStops(frames);
+  const offsets = stops.map((stop) => stop.offsetMin);
+  assert.equal(Math.min(...offsets), -60);
+  assert.ok(offsets.includes(0));
+  assert.equal(stops.find((stop) => stop.offsetMin === 0)?.path, "/v2/radar/-7");
+  assert.ok(!offsets.includes(-70));
+  assert.deepEqual(offsets.slice(offsets.indexOf(0)), [0, 10, 20, 30, 40, 50, 60]);
+});
+
+test("now sits between a late scan and the next forecast image", () => {
+  const frames: MapFrame[] = [
+    ...past([-80, -7]),
+    { time: 1_700_000_000 + 3 * 60, offsetMin: 3, path: "/v2/radar/future", kind: "nowcast" },
+  ];
+  const stops = timelineStops(frames);
+  assert.deepEqual(
+    stops.map((stop) => stop.offsetMin),
+    [-7, 0, 3],
+  );
+  assert.equal(stops[1]?.kind, "past");
+  assert.equal(stops[1]?.path, "/v2/radar/-7");
+  assert.equal(stops[2]?.kind, "nowcast");
+});
+
+test("a scan that lands on a future step is kept once", () => {
+  const stops = timelineStops(past([0, 2]));
+  const atStep = stops.filter((stop) => stop.offsetMin === 2);
+  assert.equal(atStep.length, 1);
+  assert.equal(atStep[0]?.kind, "past");
+});
